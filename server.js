@@ -1,6 +1,6 @@
 // Importing packages
 const inquirer = require('inquirer');
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
 const cTable = require('console.table');
 // Encryption for env file
 require("dotenv").config();
@@ -9,7 +9,7 @@ const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PASSWORD;
 const dbName = process.env.DB_NAME;
 // Connect to database
-async function dbConnection() {
+async function dbConnection(select) {
     try {
         const db = await mysql.createConnection (
             {
@@ -60,7 +60,6 @@ async function dbConnection() {
                 `);
         console.table(returnedRowsFromDb[0]); 
         break;
-    }
     //Add a department to database
     case "Add a Department":
         returnedOutputFromInq = await inquirer.prompt([
@@ -75,8 +74,7 @@ async function dbConnection() {
             `INSERT INTO department (name) VALUES ('${returnedOutputFromInq.department}');`);
         } catch (error) {
             console.log("Cannot insert duplicate Department");
-    }
-
+        }
     break;
 
   //Add a role to database, prompts user using inquirer
@@ -101,8 +99,7 @@ async function dbConnection() {
 
     // Make a variable to store value from the DB call to get department id
     const returnDepartmentId = await db.query(
-        `SELECT IFNULL((SELECT id FROM department WHERE name = "${roleDpt}"), "Department Does Not Exist")`
-    );
+        `SELECT IFNULL((SELECT id FROM department WHERE name = "${roleDpt}"), "Department Does Not Exist")`);
 
     // Write a query to get the department id from the name
     const [rows] = returnDepartmentId;
@@ -200,11 +197,10 @@ async function dbConnection() {
     SET role_id = ${returnedOutputFromInq.newRole}
     WHERE employee.id = ${returnedOutputFromInq.employeeId};`);
     break;
-
-    } catch (err) {
+}
+    }catch (err) {
         console.log(err)
-    }
-};
+    }};
 //Funtion to prompt user to choose cases to execute
 function userPrompt() {
     inquirer

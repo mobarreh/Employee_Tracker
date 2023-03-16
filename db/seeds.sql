@@ -21,7 +21,7 @@ VALUES  ("Developer Manager", 500000, 1),
 
 INSERT INTO employee (first_name, last_name, role_id, manager_id)
 VALUES  ("Max", "Say",  1, NULL),
-        ("Kyle", "Smith",  2, 1), lead
+        ("Kyle", "Smith",  2, 1),
         ("Malcom", "Smith",  3, 1), 
         ("Homer", "Smith",  4, NULL), 
         ("Julia", "Smith",  5, 4),
