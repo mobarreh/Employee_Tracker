@@ -22,7 +22,6 @@ async function dbConnection() {
     //Variables for query returns and prompt responses
     let returnedRowsFromDb = [];
     let returnedOutputFromInq = [];
-
     // switch for all user input cases
     switch (select) {
     //View all departments output
@@ -62,6 +61,145 @@ async function dbConnection() {
         console.table(returnedRowsFromDb[0]); 
         break;
     }
+    //Add a department to database
+    case "Add a Department":
+        returnedOutputFromInq = await inquirer.prompt([
+        {
+            name: "department",
+            message: "Enter New Department Name:",
+        },
+    ]);
+    try {
+      // SQL query to add department
+        returnedRowsFromDb = await db.query(
+            `INSERT INTO department (name) VALUES ('${returnedOutputFromInq.department}');`);
+        } catch (error) {
+            console.log("Cannot insert duplicate Department");
+    }
+
+    break;
+
+  //Add a role to database, prompts user using inquirer
+    case "Add a Role":
+        returnedOutputFromInq = await inquirer.prompt([
+        {
+            name: "roleName",
+            message: "Enter New Role Name:",
+        },
+        {
+            name: "roleSalary",
+            message: "Enter New Role Salary:",
+        },
+        {
+            name: "roleDpt",
+            message: "Enter New Role Department:",
+        },
+    ]);
+
+    // Destructure returnedOutputFromInq
+    const { roleName, roleSalary, roleDpt } = returnedOutputFromInq;
+
+    // Make a variable to store value from the DB call to get department id
+    const returnDepartmentId = await db.query(
+        `SELECT IFNULL((SELECT id FROM department WHERE name = "${roleDpt}"), "Department Does Not Exist")`
+    );
+
+    // Write a query to get the department id from the name
+    const [rows] = returnDepartmentId;
+    const department_id = Object.values(rows[0])[0];
+
+    // Check to see if the id exist in the DB or not and return a "Department Doesn't Exist!" or something like that
+    if (department_id === "Department Does Not Exist") {
+        console.log("Enter a Role in an Existing Department!");
+        break;
+    }
+    // SQL query to add new role to database
+    returnedRowsFromDb = await db.query(
+        ` INSERT INTO role (title, salary, department_id) VALUES ('${roleName}', '${roleSalary}', '${department_id}');`
+    );
+    break;
+
+  //Add an employee to database
+    case "Add an Employee":
+        returnedOutputFromInq = await inquirer.prompt([
+            {
+                name: "first_name",
+                message: "Enter New Employee's First Name:",
+            },
+            {
+                name: "last_name",
+                message: "Enter New Employee's Last Name:",
+            },
+            {
+                name: "role",
+                message: "Enter New Employee's Role:",
+            },
+            {
+                name: "manager",
+                message: "Enter New Employee's Manager:",
+            },
+        ]);
+
+    const allRoles = await db.query("select * from role;");
+    const allManagers = await db.query(
+        "select * from employee where manager_id is null;"
+    );
+    const { first_name, last_name, role, manager } = returnedOutputFromInq;
+    
+    const role_data = allRoles[0].filter((r) => {
+        return r.title === role;
+    });
+    const manager_data = allManagers[0].filter((m) => {
+        return `${m.first_name} ${m.last_name}` === manager;
+    });
+    //SQL query to add employee to database
+    returnedRowsFromDb = await db.query(
+        `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ('${first_name}', '${last_name}', ${role_data[0].id}, ${manager_data[0].id})`
+    );
+    break;
+
+  // Update employee
+    case "Update an Employee Role":
+        currentEmployees = await db.query(
+            `SELECT id, first_name, last_name FROM employee;`);
+        currentRoles = await db.query(
+            `SELECT id, title FROM role;`);
+
+    const employeeList = currentEmployees[0].map((employee) => {
+        return {
+            name: `${employee["first_name"]} ${employee.last_name}`,
+            value: employee.id,
+        };
+    });
+    const roleList = currentRoles[0].map((role) => {
+        return {
+        name: role.title,
+        value: role.id,
+        };
+    });
+
+    returnedOutputFromInq = await inquirer.prompt([
+        {
+            type: "list",
+            name: "employeeId",
+            message: "Choose Which Employee to Update:",
+            choices: employeeList,
+        },
+        {
+            type: "list",
+            name: "newRole",
+            message: "Please Enter Employee's New Role:",
+            choices: roleList,
+        },
+    ]);
+    console.log(returnedOutputFromInq);
+
+    // Update employee 
+    returnedRowsFromDb = await db.query(
+    `UPDATE employee
+    SET role_id = ${returnedOutputFromInq.newRole}
+    WHERE employee.id = ${returnedOutputFromInq.employeeId};`);
+    break;
 
     } catch (err) {
         console.log(err)
